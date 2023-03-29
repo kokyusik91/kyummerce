@@ -4,7 +4,6 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function getProduct(id: number) {
-  console.log('아이디', id)
   try {
     const response = await prisma.products.findUnique({
       where: {
