@@ -6,11 +6,13 @@ import { CATEGORY_MAP, FILTERs } from 'constants/products'
 import { IconSearch } from '@tabler/icons-react'
 import useDebounce from 'hooks/useDebounce'
 import { useQuery } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 
 const TAKE = 9
 
 export default function ProdcutsPage() {
   const [activePage, setPage] = useState(1)
+  const { data: session } = useSession()
   // const [total, setTotal] = useState(0)
   // const [categories, setCategories] = useState<categories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('-1')
@@ -80,6 +82,7 @@ export default function ProdcutsPage() {
 
   return (
     <div className="px-36 mt-36 mb-36">
+      {session && <p>안녕하세요 . {session.user?.name}님</p>}
       <div className="mb-4">
         <Input
           icon={<IconSearch />}
@@ -121,7 +124,9 @@ export default function ProdcutsPage() {
                 <span>{item.name}</span>
                 <span className="ml-auto">{item.price.toLocaleString('ko-KR')}원</span>
               </div>
-              <span className="text-zinc-400">{CATEGORY_MAP[item.category_id - 1]}</span>
+              <span className="text-zinc-400">
+                {CATEGORY_MAP[item.category_id ? item.category_id - 1 : 0]}
+              </span>
             </div>
           ))}
         </div>
