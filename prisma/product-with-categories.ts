@@ -187,6 +187,22 @@ const hoodie = [
 // 1부터 10까지 주입
 
 async function main() {
+  const CATEGORIES = ['SNEAKERS', 'T-SHIRT', 'PANTS', 'CAP', 'HOODIE']
+  CATEGORIES.forEach(async (c, i) => {
+    const product = await prisma.categories.upsert({
+      where: {
+        id: i + 1,
+      },
+      update: {
+        name: c,
+      },
+      create: {
+        name: c,
+      },
+    })
+    console.log(`Upsert Category id : ${product.id}`)
+  })
+
   // 기존에 있던 테이블을 다 지운다.
   await prisma.products.deleteMany({})
 
