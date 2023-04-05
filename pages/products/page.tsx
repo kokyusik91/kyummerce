@@ -7,10 +7,12 @@ import { IconSearch } from '@tabler/icons-react'
 import useDebounce from 'hooks/useDebounce'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
 
 const TAKE = 9
 
 export default function ProdcutsPage() {
+  const router = useRouter()
   const [activePage, setPage] = useState(1)
   const { data: session } = useSession()
   // const [total, setTotal] = useState(0)
@@ -110,7 +112,11 @@ export default function ProdcutsPage() {
       {products && (
         <div className="grid grid-cols-3 gap-5">
           {products.map((item) => (
-            <div key={item.id} style={{ maxWidth: 300 }}>
+            <div
+              key={item.id}
+              style={{ maxWidth: 300 }}
+              onClick={() => router.push(`/products/${item.id}`)}
+            >
               <Image
                 className="rounded"
                 src={item.image_url ?? ''}
