@@ -1,8 +1,12 @@
-import NextAuth, { NextAuthOptions } from 'next-auth'
+import NextAuth, { NextAuthOptions, Session } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { PrismaClient } from '@prisma/client'
 import { CLIENT_ID, CLIENT_SECRET } from 'constants/google-oAuth'
+
+interface CustomSession extends Session {
+  id: string
+}
 
 const prisma = new PrismaClient()
 
@@ -17,6 +21,12 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'database',
     maxAge: 1 * 24 * 60 * 60,
+  },
+  callbacks: {
+    session: async ({ session, user }) => {
+      session.id = user.id
+      return Promise.resolve(session)
+    },
   },
 }
 
