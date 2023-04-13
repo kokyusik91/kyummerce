@@ -5,7 +5,13 @@ const nextConfig = {
     emotion: true,
   },
   images: {
-    domains: ['picsum.photos', 'raw.githubusercontent.com', 'image.msscdn.net'],
+    domains: [
+      'picsum.photos',
+      'raw.githubusercontent.com',
+      'image.msscdn.net',
+      'lh3.googleusercontent.com',
+      'devjeans-photo.s3.amazonaws.com',
+    ],
   },
 }
 
