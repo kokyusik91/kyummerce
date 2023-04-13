@@ -17,8 +17,9 @@ async function updateWishList(userId: string, productId: string) {
       wishlist?.productIds !== null && wishlist?.productIds !== ''
         ? wishlist?.productIds.split(',')
         : []
-
+    // wishlist에 클라에서 받은 productId가 있다면?
     const isWished = originWishList?.includes(productId)
+    // 이미 wishList에 있다면? 리스트에서 빼주고 없으면 기존 wishList에 추가
     const newWishlist = isWished
       ? originWishList?.filter((id) => id !== productId)
       : [...(originWishList || []), productId]
@@ -30,6 +31,7 @@ async function updateWishList(userId: string, productId: string) {
       update: {
         productIds: newWishlist?.join(','),
       },
+      // 없을때는 새로 userId까지 추가해야함.
       create: {
         userId,
         productIds: newWishlist?.join(',') || '',

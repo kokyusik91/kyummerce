@@ -5,15 +5,34 @@ import { authOptions } from './auth/[...nextauth]'
 
 const prisma = new PrismaClient()
 
-async function getWishList(userId: string) {
+async function getWishLists(userId: string) {
   try {
-    const response = await prisma.wishlist.findUnique({
+    // wishlist : '1,2,3'
+    const wishlist = await prisma.wishlist.findUnique({
       where: {
         userId: userId,
       },
     })
-    // productIds : '1,2,3'
-    return response?.productIds.split(',')
+
+    console.log
+
+    // [1,2,3]
+    const productsId = wishlist?.productIds.split(',').map((item) => Number(item))
+    // productsId 배열이 있고, productsId 배열이 0 초과일때
+    if (productsId && productsId.length > 0) {
+      const response = await prisma.products.findMany({
+        where: {
+          id: {
+            // 배열 전달할때 in을 쓴다.
+            in: productsId,
+          },
+        },
+      })
+      console.log('찜한 목록들 💕', response)
+      return response
+    }
+
+    return []
   } catch (error) {
     console.error(error)
   }
@@ -33,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
   try {
-    const wishlist = await getWishList(String(session.id))
+    const wishlist = await getWishLists(String(session.id))
     res.status(200).json({ items: wishlist, message: `Success` })
   } catch (error) {
     res.status(400).json({ message: `Failed` })
