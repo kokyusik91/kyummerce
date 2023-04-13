@@ -26,7 +26,7 @@ export default function ProdcutsPage() {
     setSkip(next)
   }, [skip, products])
   return (
-    <div className="px-36 mt-36 mb-36">
+    <div className="mt-36 mb-36">
       <div className="grid grid-cols-3 gap-5">
         {products &&
           products.map((item) => (
@@ -38,7 +38,7 @@ export default function ProdcutsPage() {
                 height={200}
                 alt={item.name}
                 placeholder="blur"
-                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMUFRGpBwABQQC+j7VjogAAAABJRU5ErkJggg=="
               />
               <div className="flex">
                 <span>{item.name}</span>
