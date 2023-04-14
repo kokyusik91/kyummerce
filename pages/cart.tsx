@@ -4,17 +4,15 @@ import { CountControl } from 'components/CountControl'
 import { IconRefresh, IconX } from '@tabler/icons-react'
 import styled from '@emotion/styled'
 import { Button } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
-import { categories, products } from '@prisma/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { categories, products, Cart } from '@prisma/client'
 import { Router, useRouter } from 'next/router'
 import { CATEGORY_MAP } from 'constants/products'
 
-interface CartItem {
+//  기존 DB 스키마에 extends로 타입 추가
+interface CartItem extends Cart {
   name: string
-  productId: number
   price: number
-  quantity: number
-  amount: number
   image_url: string
 }
 
@@ -25,57 +23,49 @@ const Row = styled.div`
   }
 `
 
-const mockData = [
-  {
-    name: '멋드러진 신발',
-    productId: 120,
-    price: 20000,
-    quantity: 1,
-    amount: 20000,
-    image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
-  },
-  {
-    name: '멋드러진 후드',
-    productId: 119,
-    price: 15000,
-    quantity: 1,
-    amount: 15000,
-    image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
-  },
-]
+export const CART_QUERY_KEY = '/api/get-cart'
 
-function Cart() {
-  const [data, setCartData] = useState<CartItem[]>([])
+// const mockData = [
+//   {
+//     name: '멋드러진 신발',
+//     productId: 120,
+//     price: 20000,
+//     quantity: 1,
+//     amount: 20000,
+//     image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
+//   },
+//   {
+//     name: '멋드러진 후드',
+//     productId: 119,
+//     price: 15000,
+//     quantity: 1,
+//     amount: 15000,
+//     image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
+//   },
+// ]
+
+function CartPage() {
   const router = useRouter()
+
+  const { data } = useQuery<{ items: CartItem[] }, unknown, CartItem[]>([CART_QUERY_KEY], () =>
+    fetch(CART_QUERY_KEY)
+      .then((res) => res.json())
+      .then((data) => data.items),
+  )
+
+  console.log(data)
+
+  const deliveryAmount = data && data.length > 0 ? 5000 : 0
+  const discountAmount = 0
+
   const amount = useMemo(() => {
+    if (data == null) {
+      return 0
+    }
     return data.map((item) => item.amount).reduce((prev, cul) => prev + cul, 0)
   }, [data])
 
-  const deliveryAmount = 5000
-  const discountAmount = 0
-
-  useEffect(() => {
-    const mockData = [
-      {
-        name: '멋드러진 신발',
-        productId: 120,
-        price: 20000,
-        quantity: 1,
-        amount: 20000,
-        image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
-      },
-      {
-        name: '멋드러진 후드',
-        productId: 119,
-        price: 15000,
-        quantity: 1,
-        amount: 15000,
-        image_url: 'https://devjeans-photo.s3.amazonaws.com/2023-04-04T14:29:11.790883bunny.jpg',
-      },
-    ]
-    setCartData(mockData)
-  }, [mockData])
-
+  //  추천 상품 조회
   const { data: products } = useQuery<{ items: products[] }, unknown, products[]>(
     [`/api/get-products?skip=0&take=3`],
     () => fetch(`/api/get-products?skip=0&take=3`).then((res) => res.json()),
@@ -90,13 +80,17 @@ function Cart() {
 
   return (
     <div>
-      <span className="text-2xl mb-3">cart {data.length}</span>
+      <span className="text-2xl mb-3">cart {data ? data.length : 0}</span>
       <div className="flex">
         <div className="flex flex-col p-4 space-y-4 flex-1">
-          {data?.length > 0 ? (
-            data.map((item, idx) => <Item key={idx} {...item} />)
+          {data ? (
+            data?.length > 0 ? (
+              data?.map((item, idx) => <Item key={item.id} {...item} />)
+            ) : (
+              <div>장바구니에 아무것도 없습니다.</div>
+            )
           ) : (
-            <div>장바구니에 아무것도 없습니다.</div>
+            <div>불러오는 중.....</div>
           )}
         </div>
         <div className="px-4">
@@ -176,18 +170,75 @@ const Item = (props: CartItem) => {
   const [quantity, setQuantity] = useState<number | undefined>(props.quantity)
   const [amount, setAmount] = useState<number>(props.quantity)
   const router = useRouter()
+  const queryClient = useQueryClient()
+
   useEffect(() => {
     if (quantity != null) setAmount(quantity * props.price)
   }, [quantity, props.price])
 
+  const { mutate: updateCart } = useMutation<unknown, unknown, Cart, any>(
+    (item) =>
+      fetch(`/api/update-cart`, {
+        method: 'POST',
+        body: JSON.stringify({ item }),
+      })
+        .then((data) => data.json())
+        .then((res) => res.items),
+    {
+      onMutate: async (item) => {
+        await queryClient.cancelQueries([CART_QUERY_KEY])
+
+        const previous = queryClient.getQueryData([CART_QUERY_KEY])
+
+        queryClient.setQueryData<Cart[]>([CART_QUERY_KEY], (old) =>
+          old?.filter((c) => c.id !== item.id).concat(item),
+        )
+
+        return { previous }
+      },
+      onError: (error, _, context) => {
+        queryClient.setQueryData([CART_QUERY_KEY], context.previous)
+      },
+    },
+  )
+
+  const { mutate: deleteCart } = useMutation<unknown, unknown, number, any>(
+    (id) =>
+      fetch(`/api/delete-cart`, {
+        method: 'POST',
+        body: JSON.stringify({ id }),
+      })
+        .then((data) => data.json())
+        .then((res) => res.items),
+    {
+      onMutate: async (id) => {
+        await queryClient.cancelQueries([CART_QUERY_KEY])
+
+        const previous = queryClient.getQueryData([CART_QUERY_KEY])
+
+        queryClient.setQueryData<Cart[]>([CART_QUERY_KEY], (old) => old?.filter((c) => c.id !== id))
+
+        return { previous }
+      },
+      onError: (error, _, context) => {
+        queryClient.setQueryData([CART_QUERY_KEY], context.previous)
+      },
+    },
+  )
+
   const handleUpdate = () => {
     // TODO : 장바구니에서 삭제 기능 구현
-    alert('장바구니에서 ${props.name} 업데이트')
+    if (quantity == null) {
+      alert('최소 수량을 입력해주세요!')
+      return
+    }
+    updateCart({ ...props, quantity: quantity, amount: props.price * quantity })
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     // TODO : 장바구니에서 삭제 기능 구현
-    alert('장바구니에서 ${props.name} 삭제')
+    await deleteCart(props.id)
+    alert('장바구니 삭제하기!')
   }
 
   return (
@@ -217,4 +268,4 @@ const Item = (props: CartItem) => {
   )
 }
 
-export default Cart
+export default CartPage
