@@ -5,9 +5,10 @@ import { IconRefresh, IconX } from '@tabler/icons-react'
 import styled from '@emotion/styled'
 import { Button } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { categories, products, Cart } from '@prisma/client'
+import { categories, products, Cart, OrderItem } from '@prisma/client'
 import { Router, useRouter } from 'next/router'
 import { CATEGORY_MAP } from 'constants/products'
+import { ORDER_QUERY_KEY } from './my'
 
 //  기존 DB 스키마에 extends로 타입 추가
 interface CartItem extends Cart {
@@ -46,6 +47,7 @@ export const CART_QUERY_KEY = '/api/get-cart'
 
 function CartPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const { data } = useQuery<{ items: CartItem[] }, unknown, CartItem[]>([CART_QUERY_KEY], () =>
     fetch(CART_QUERY_KEY)
@@ -74,7 +76,38 @@ function CartPage() {
     },
   )
 
+  const { mutate: addOrder } = useMutation<unknown, unknown, Omit<OrderItem, 'id'>[], any>(
+    (items) =>
+      fetch(`/api/add-order`, {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      })
+        .then((data) => data.json())
+        .then((res) => res.items),
+    {
+      // mutate 했을때 초기화 시키고
+      onMutate: () => {
+        queryClient.invalidateQueries([ORDER_QUERY_KEY])
+      },
+      // 성공했을때 페이지 이동을 실행!
+      onSuccess: () => {
+        router.push('/my')
+      },
+    },
+  )
+
   const handleOrder = () => {
+    if (data == null) {
+      return
+    }
+    addOrder(
+      data.map((cart) => ({
+        productId: cart.productId,
+        price: cart.price,
+        amount: cart.amount,
+        quantity: cart.quantity,
+      })),
+    )
     alert('장바구니에 담긴 내용들 주문하기')
   }
 
