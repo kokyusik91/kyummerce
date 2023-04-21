@@ -56,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
   try {
-    const { productId } = JSON.parse(req.body)
     const wishlist = await addOrder(String(session.id), items, orderInfo)
     res.status(200).json({ items: wishlist, message: `Success` })
   } catch (error) {
