@@ -110,3 +110,14 @@ model Orders {
   createdAt DateTime @default(now())
   status Int
 }
+
+model Comment {
+  id   Int    @id @default(autoincrement())
+  userId String
+  // orderItem 하나당 하나만 유니크 하게 입력해야함.
+  orderItemId Int @unique
+  rate Int
+  contents String?
+  Images String?
+  updateAt DateTime @updatedAt
+}

@@ -6,7 +6,7 @@ import CustomEditor from 'components/Editor'
 import { useRouter } from 'next/router'
 import { EditorState, convertFromRaw, convertToRaw } from 'draft-js'
 import { GetServerSidePropsContext } from 'next'
-import { Cart, OrderItem, products } from '@prisma/client'
+import { Cart, OrderItem, products, Comment } from '@prisma/client'
 import { format } from 'date-fns'
 import { CATEGORY_MAP } from 'constants/products'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -17,15 +17,30 @@ import { validateConfig } from 'next/dist/server/config-shared'
 import { CountControl } from 'components/CountControl'
 import { CART_QUERY_KEY } from 'pages/cart'
 import { ORDER_QUERY_KEY } from 'pages/my'
+import CommentItem from 'components/CommentItem'
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const product = await fetch(`http://localhost:3000/api/get-product?id=${context.params?.id}`)
     .then((res) => res.json())
     .then((data) => data.items)
-  return { props: { product: { ...product, images: [product.image_url, product.image_url] } } }
+
+  const comments = await fetch(
+    `http://localhost:3000/api/get-comments?productId=${context.params?.id}`,
+  )
+    .then((res) => res.json())
+    .then((data) => data.items)
+  return {
+    props: {
+      product: { ...product, images: [product.image_url, product.image_url] },
+      comments: comments,
+    },
+  }
 }
 
-function Proucts(props: { product: products & { images: string[] } }) {
+export interface CommentItemType extends Comment, OrderItem {}
+
+function Proucts(props: { product: products & { images: string[] }; comments: CommentItemType[] }) {
+  console.log(props.comments)
   const [index, setIndex] = useState(0)
   const { data: session } = useSession()
   const router = useRouter()
@@ -206,6 +221,13 @@ function Proucts(props: { product: products & { images: string[] } }) {
               ))}
             </div>
             {editorState != null && <CustomEditor editorState={editorState} readOnly />}
+            <div>
+              <p className="text-2xl font-semibold">후기</p>
+              {props.comments &&
+                props.comments.map((comment, idx) => (
+                  <CommentItem key={comment.id} item={comment} />
+                ))}
+            </div>
           </div>
           <div style={{ maxWidth: 600 }} className="flex flex-col space-y-6">
             <div className="text-lg text-zinc-400">
