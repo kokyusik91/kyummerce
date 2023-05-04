@@ -10,11 +10,13 @@ async function updateComment({
   orderItemId,
   rate,
   contents,
+  images,
 }: {
   userId: string
   orderItemId: number
   rate: number
   contents: string
+  images: string
 }) {
   try {
     const response = await prisma.comment.upsert({
@@ -24,6 +26,7 @@ async function updateComment({
       update: {
         contents,
         rate,
+        images,
       },
       // 없을때는 새로 userId까지 추가해야함.
       create: {
@@ -31,6 +34,7 @@ async function updateComment({
         orderItemId,
         contents,
         rate,
+        images,
       },
     })
 
@@ -53,12 +57,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
   try {
-    const { orderItemId, rate, contents } = JSON.parse(req.body)
+    const { orderItemId, rate, contents, images } = JSON.parse(req.body)
     const wishlist = await updateComment({
       userId: String(session.id),
       orderItemId: Number(orderItemId),
       rate: rate,
       contents: contents,
+      images: images,
     })
     res.status(200).json({ items: wishlist, message: `Success` })
   } catch (error) {

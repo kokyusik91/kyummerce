@@ -1,9 +1,10 @@
 import { Slider } from '@mantine/core'
+import AutoSizeImage from 'components/AutoSizeImage'
 import CustomEditor from 'components/Editor'
 import ro from 'date-fns/esm/locale/ro/index.js'
 import { EditorState, convertFromRaw, convertToRaw } from 'draft-js'
 import { useRouter } from 'next/router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 // DB에 저장해 놓았던 Comment에 Content를 사용할 예정
 function CommentEdit() {
@@ -11,6 +12,9 @@ function CommentEdit() {
   const { orderItemId } = router.query
   const [rate, setRate] = useState(5)
   const [editorState, setEditorState] = useState<EditorState | undefined>(undefined)
+  const inputRef = useRef<HTMLInputElement>(null)
+  // 이미지를 다중 선택 (url에 배열)
+  const [images, setImages] = useState<string[]>([])
 
   useEffect(() => {
     if (orderItemId != null) {
@@ -23,6 +27,7 @@ function CommentEdit() {
               EditorState.createWithContent(convertFromRaw(JSON.parse(data.items.contents))),
             )
             setRate(data.items.rate)
+            setImages(data.items.images.split(',') ?? [])
           } else {
             setEditorState(EditorState.createEmpty())
           }
@@ -38,7 +43,7 @@ function CommentEdit() {
           orderItemId: Number(orderItemId),
           rate: rate,
           contents: JSON.stringify(convertToRaw(editorState.getCurrentContent())),
-          images: [],
+          images: images.join(','),
         }),
       })
         .then((res) => res.json())
@@ -46,6 +51,29 @@ function CommentEdit() {
           alert('success')
           router.back()
         })
+    }
+  }
+
+  const handleChange = () => {
+    if (inputRef.current && inputRef.current.files && inputRef.current.files.length > 0) {
+      for (let i = 0; i < inputRef.current.files.length; i++) {
+        const fd = new FormData()
+        fd.append('image', inputRef.current.files[i], inputRef.current.files[i].name)
+
+        fetch(
+          'https://api.imgbb.com/1/upload?key=82ab610ad5c2fece8049ee092743e0e0&expiration=15552000',
+          {
+            method: 'POST',
+            body: fd,
+          },
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            // set 자료를 사용하여 같은 이미지는 없애준다. => 배열
+            setImages((prev) => Array.from(new Set(prev.concat(data.data.image.url))))
+          })
+          .catch((error) => console.log(error))
+      }
     }
   }
 
@@ -67,6 +95,10 @@ function CommentEdit() {
         onChange={setRate}
         marks={[{ value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 5 }]}
       />
+      <input ref={inputRef} type="file" accept="image/*" multiple onChange={handleChange} />
+      {images &&
+        images.length > 0 &&
+        images.map((image, idx) => <AutoSizeImage key={idx} src={image} />)}
     </div>
   )
 }
