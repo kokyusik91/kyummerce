@@ -5,6 +5,7 @@ import { CommentItemType } from 'pages/products/[id]'
 import React from 'react'
 import CustomEditor from './Editor'
 import { EditorState, convertFromRaw } from 'draft-js'
+import AutoSizeImage from './AutoSizeImage'
 
 function CommentItem({ item }: { item: CommentItemType }) {
   console.log(item.contents)
@@ -40,6 +41,11 @@ function CommentItem({ item }: { item: CommentItemType }) {
             readOnly
           />
         )}
+      </div>
+      <div style={{ display: 'flex' }}>
+        {item.images?.split(',').map((image, idx) => (
+          <AutoSizeImage key={idx} src={image} size={150} />
+        ))}
       </div>
     </Wrapper>
   )
