@@ -118,6 +118,6 @@ model Comment {
   orderItemId Int @unique
   rate Int
   contents String?
-  Images String?
+  images String?
   updateAt DateTime @updatedAt
 }
